@@ -23,6 +23,11 @@ A user of the system.
 
 _Property managers_ and _unit owners_ are roles that a _user_ can have. A _user_ can have both roles.
 
+### Role
+A user's role with respect to a unit. This determines how the user interacts with each unit.
+
+For example a Property Manager user maybe a _unit owner_ of the unit they live in and they are _property manager_ of all of the units in their community.
+
 ### Unit
 A villa property within a specific community. Units are owned by a _unit owner_. A _unit owner_ can have many _units_. An _unit_ can have many _unit owners_.
 
@@ -49,5 +54,28 @@ A _manager_ can remove a _user_ from the role of _unit owner_ for a specific uni
 ### Add Vehicle
 A _unit owner_ can add a vehicle to thier _unit_.
 
+### Change Vehicle
+A _unit owner_ can update their vehicle's make, model or license plate.
+
 ### Remove Vehicle
 A _unit owner_ can remove a vehicle from thier _unit_.
+
+## Enitity Relationships
+```mermaid
+erDiagram
+    User }|--|| User-Unit-Role : has
+    User-Unit-Role ||--|{ Unit : has
+    User-Unit-Role ||--|{ Role : has
+
+    User }|--o| User-Vehicle : has
+    User-Vehicle ||--|{ Vehicle : has
+```
+
+## State Transitions
+### Unit States
+```mermaid
+stateDiagram-v2
+    Vacant --> Occupied : Check-in
+    Occupied --> Vacant : Check-out
+
+```
