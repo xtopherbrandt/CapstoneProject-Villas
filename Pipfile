@@ -1,0 +1,24 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+flask-marshmallow = "*"
+flask-sqlalchemy = "*"
+marshmallow-sqlalchemy = "*"
+alembic = "*"
+flask-migrate = "*"
+psycopg2 = "*"
+html-to-json = "*"
+python-dotenv = "*"
+flask-moment = "*"
+python-dateutil = "*"
+babel = "*"
+flask-cors = "*"
+requests = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.11"
