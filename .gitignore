@@ -1,6 +1,7 @@
 .vscode
 __pycache__
 venv
+error.log
 
 # OS generated files #
 ######################
@@ -14,3 +15,5 @@ Thumbs.db
 env/
 api-env/
 frontend/node_modules/
+backend/error.log
+Pipfile.lock
