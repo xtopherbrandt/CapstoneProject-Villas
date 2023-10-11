@@ -1,0 +1,6 @@
+{
+    "DB_USERNAME": "xtopher",
+    "DB_PASSWORD":"wolf",
+    "DB_NAME":"villas-test",
+    "DB_HOST":"localhost:5432"
+}
