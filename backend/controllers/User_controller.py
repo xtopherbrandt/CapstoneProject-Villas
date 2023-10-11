@@ -2,6 +2,8 @@ from flask import Flask, request,jsonify, abort
 from models.user_model import User, UserSchema
 from models.model_base import db
 
+from marshmallow.exceptions import ValidationError
+
 app = Flask(__name__)
 
         
@@ -37,16 +39,28 @@ def define_routes(app):
         
         user_data = request.get_json()
         
+        if user_data == {}:
+            abort(400)
+            
         print(user_data)
         
-        user_schema = UserSchema()
-        user = user_schema.load(user_data)
-        
+        try:
+            user_schema = UserSchema()
+            user = user_schema.load(user_data)
+        except ValidationError as e:
+            abort(400, e.messages)
+                    
         print(user)
-        
-        db.session.add(user)
-        db.session.commit()
-                
+        try:
+            db.session.add(user)
+            db.session.commit()
+        except Exception as e:
+            if hasattr(e, 'message'):
+                print(e.message)
+            else:
+                print(e)
+            abort(500)                
+
         success = True
 
         print(user_schema.dump(user))
@@ -72,12 +86,14 @@ def define_routes(app):
         
         try:
             user = User.query.filter(User.id == user_id).one_or_none()
-            if user is None:
-                abort(404)
-        except:
+        except Exception as e:
+            if hasattr(e, 'message'):
+                print(e.message)
+            else:
+                print(e)
             abort(500)
-            
-            
+        if user is None:
+            abort(404)            
         user_schema = UserSchema()
         user_deserialized = user_schema.dump(user)
         

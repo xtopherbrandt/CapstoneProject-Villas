@@ -34,7 +34,7 @@ class Test_UserAPI(unittest.TestCase):
         return
     
     def test_can_post_new_user_and_get_user(self):
-        url = self.base_url + 'user'
+        
         user_data = {
             "first_name": "Joe",
             "last_name": "Smith",
@@ -64,5 +64,38 @@ class Test_UserAPI(unittest.TestCase):
         get_response_data_json = json.loads( get_response.data )
         self.assertDictEqual(user_data, get_response_data_json['user'] )
 
+    def test_get_user_with_bad_id_returns_404(self):
+        
+        get_response = self.client().get('/user/99999')
+       
+        # Assert the response status code is NOT FOUND
+        self.assertEqual(get_response.status_code, 404)       
+        
+    def test_post_user_with_no_body_returns_415(self):
+        
+        response = self.client().post('/user')        
+        
+        # Assert the response status code is UNSUPPORTED MEDIA    
+        self.assertEqual(response.status_code, 415)
+        
+    def test_post_user_with_empty_body_returns_400(self):
+        
+        response = self.client().post('/user', json={})        
+        
+        # Assert the response status code is BAD REQUEST
+        self.assertEqual(response.status_code, 400)
+        
+    def test_post_user_with_only_first_name_returns_400_with_descriptive_message(self):
+        
+        user_data = {
+            'first_name': 'test'
+        }
+        response = self.client().post('/user', json=user_data)        
+        
+        # Assert the response status code is BAD REQUEST
+        self.assertEqual(response.status_code, 400)        
+        
+        response_data_json = json.loads(response.data)
+        self.assertTrue('last_name' in response_data_json['message'], "Response message should contain information pointing to the missing last_name field")
 if __name__ == '__main__':
     unittest.main()
