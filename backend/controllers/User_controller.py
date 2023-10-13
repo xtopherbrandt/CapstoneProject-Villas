@@ -3,10 +3,17 @@ from models.user_model import User, UserSchema
 from models.model_base import db
 
 from marshmallow.exceptions import ValidationError
+from authlib.integrations.flask_oauth2 import ResourceProtector
+from validator import Auth0JWTBearerTokenValidator, domain, audience
 
 app = Flask(__name__)
 
-        
+require_auth = ResourceProtector()
+validator = Auth0JWTBearerTokenValidator(
+    domain=domain,
+    audience=audience
+)
+require_auth.register_token_validator(validator)
 
 def define_routes(app):
     
@@ -34,6 +41,7 @@ def define_routes(app):
         }
     '''    
     @app.route('/user', methods=['POST'])
+    @require_auth('create:user')
     def post_user():
         success = False
         
@@ -81,6 +89,7 @@ def define_routes(app):
         }
     '''
     @app.route('/user/<int:user_id>', methods=['GET'])
+    @require_auth('read:user')
     def get_user(user_id):
         success = False
         
