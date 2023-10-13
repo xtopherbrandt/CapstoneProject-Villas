@@ -11,7 +11,9 @@ root.render(
     domain = 'dev-boa4pqqkkm3qz05i.us.auth0.com'
     clientId='dT8TdAVlj3jXfXvFuPU6kXGumiS6hAhL'
     authorizationParams={{
-      redirect_uri: window.location.origin
+      redirect_uri: window.location.origin,
+      audience: "https://villa-systems.net", 
+      scope: "read:user create:user"
     }}>
     <React.StrictMode>
       <App />
