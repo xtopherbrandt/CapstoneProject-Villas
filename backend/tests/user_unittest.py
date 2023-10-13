@@ -5,13 +5,6 @@ import html_to_json
 import json
 import os
 
-
-        
-testingUsers = {
-    'qae9rz92@duck.com': 'sqQcj_B3E8rs4.jA',
-    'bdxa559p@duck.com': '-GPihnLU@hPqG9U2'
-    }
-
 class Test_UserAPI(unittest.TestCase):
     def setUp(self) -> None:
         
@@ -25,6 +18,8 @@ class Test_UserAPI(unittest.TestCase):
         self.AUTH0_CLIENT_ID = self.app.config['AUTH0_CLIENT_ID']
         self.AUTH0_CLIENT_SECRET = self.app.config['AUTH0_CLIENT_SECRET']
         self.AUTH0_AUDIENCE = self.app.config['AUTH0_AUDIENCE']
+        
+        self.testingUsers = self.app.config['TEST_USERS']
     
     def tearDown(self) -> None:
         return super().tearDown()
@@ -45,6 +40,10 @@ class Test_UserAPI(unittest.TestCase):
         return
     
     def get_auth_token(self):
+        '''
+        Gets a machine to machine auth token from Auth0
+        Client ID and Client Secret will be for the Test Application in Auth0 not the production application
+        '''
         body={
             "client_id": self.AUTH0_CLIENT_ID,
             "client_secret": self.AUTH0_CLIENT_SECRET,
@@ -55,10 +54,29 @@ class Test_UserAPI(unittest.TestCase):
         
         return response.json()['access_token']
     
+    # scopes need to be space delimeted
     def get_user_auth_token(self, userName):
+        '''
+        Gets an auth token for a user stored in the Auth0 database.
+        To set up the user:
+            1. generate a unique email address (duck email addresses work well)
+            2. generate a password
+            3. store the username and password in the env_test.py file in the TEST_USERS key
+                a. the value of the key should be a JSON object with each test user's id (email address) as the key and the value as the password
+            4. in Auth0 go to the User Management section and create a new user
+                a. set the Connection to the Username-Password-Authentication connection (Database connection)
+                b. give the user a role or the specific permissions required for the test
+            5. if required can attempt to login as the user with the first url in the auth0_url.txt file
+                a. be sure to use the second url to logout
+        
+        Each test requires a user and uses this method to get a token for that user.
+        Adjust the scope parameter to reflect the scopes available, want to get all scopes available
+            Note that the Auth0 API has the Add Permissions in the Access Token turned off because the Auth0 SDK uses the scope attribute of the token
+            Only the scopes specified in the token request (below) will be returned. They must be space separated.
+        '''
         url = f'https://{self.AUTH0_DOMAIN}/oauth/token' 
         headers = {'content-type': 'application/json'}
-        password = testingUsers[userName]
+        password = self.testingUsers[userName]
         parameter = { "client_id":self.AUTH0_CLIENT_ID, 
                     "client_secret": self.AUTH0_CLIENT_SECRET,
                     "audience": self.AUTH0_AUDIENCE,
@@ -183,8 +201,12 @@ class Test_UserAPI(unittest.TestCase):
         # Assert the response status code is OK
         self.assertEqual(response.status_code, 401)
         
-    def test_attempt_create_user_with_wrong_privileges_results_in_in_403(self):
+    def test_attempt_create_user_with_wrong_privileges_results_in_in_401(self):
         
+        userName='bdxa559p@duck.com'
+        token = self.get_user_auth_token(userName)
+        headers = { 'authorization': f'Bearer {token}' }
+                
         user_data = {
             "first_name": "Joe",
             "last_name": "Smith"
