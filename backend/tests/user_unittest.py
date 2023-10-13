@@ -64,8 +64,9 @@ class Test_UserAPI(unittest.TestCase):
                     "audience": self.AUTH0_AUDIENCE,
                     "grant_type": "password",
                     "username": userName,
-                    "password": password, 
-                    "scope": "openid, user:create, user:read"} 
+                    "password": password,
+                    "scope": "openid profile read:user create:user"
+                    } 
         
         # do the equivalent of a CURL request from https://auth0.com/docs/quickstart/backend/python/02-using#obtaining-an-access-token-for-testing
         responseDICT = json.loads(requests.post(url, json=parameter, headers=headers).text)
@@ -112,7 +113,6 @@ class Test_UserAPI(unittest.TestCase):
         
         userName='qae9rz92@duck.com'
         token = self.get_user_auth_token(userName)
-        
         headers = { 'authorization': f'Bearer {token}' }
         
         get_response = self.client().get('/user/1', headers=headers)
@@ -123,7 +123,8 @@ class Test_UserAPI(unittest.TestCase):
         
     def test_get_user_with_bad_id_returns_404(self):
         
-        token = self.get_auth_token()
+        userName='qae9rz92@duck.com'
+        token = self.get_user_auth_token(userName)
         headers = { 'authorization': f'Bearer {token}' }
         
         get_response = self.client().get('/user/99999', headers=headers)
@@ -133,7 +134,8 @@ class Test_UserAPI(unittest.TestCase):
         
     def test_post_user_with_no_body_returns_415(self):
         
-        token = self.get_auth_token()
+        userName='qae9rz92@duck.com'
+        token = self.get_user_auth_token(userName)
         headers = { 'authorization': f'Bearer {token}' }
         
         response = self.client().post('/user', headers=headers)        
@@ -143,7 +145,8 @@ class Test_UserAPI(unittest.TestCase):
         
     def test_post_user_with_empty_body_returns_400(self):
                 
-        token = self.get_auth_token()
+        userName='qae9rz92@duck.com'
+        token = self.get_user_auth_token(userName)
         headers = { 'authorization': f'Bearer {token}' }
 
         response = self.client().post('/user', json={}, headers=headers)        
@@ -153,7 +156,8 @@ class Test_UserAPI(unittest.TestCase):
         
     def test_post_user_with_only_first_name_returns_400_with_descriptive_message(self):
                 
-        token = self.get_auth_token()
+        userName='qae9rz92@duck.com'
+        token = self.get_user_auth_token(userName)
         headers = { 'authorization': f'Bearer {token}' }
 
         user_data = {
