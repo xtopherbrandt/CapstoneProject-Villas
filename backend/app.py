@@ -16,6 +16,7 @@ import traceback
 import os
 import json
 from controllers.User_controller import define_routes
+from error_handling import define_error_handlers
 
 #----------------------------------------------------------------------------#
 # App Config.
@@ -28,6 +29,7 @@ def create_app():
 
     config_app(app, configuration_file_name)
     define_routes(app)
+    define_error_handlers(app)
     print(list_routes(app))
     return app
 
