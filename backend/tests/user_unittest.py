@@ -4,6 +4,8 @@ import requests
 import html_to_json
 import json
 import os
+
+
         
 testingUsers = {
     'qae9rz92@duck.com': 'sqQcj_B3E8rs4.jA',
@@ -18,7 +20,11 @@ class Test_UserAPI(unittest.TestCase):
         self.base_url = 'http://localhost:5000/'
         self.app.testing = True
         self.client = self.app.test_client
-
+        
+        self.AUTH0_DOMAIN = self.app.config['AUTH0_DOMAIN']
+        self.AUTH0_CLIENT_ID = self.app.config['AUTH0_CLIENT_ID']
+        self.AUTH0_CLIENT_SECRET = self.app.config['AUTH0_CLIENT_SECRET']
+        self.AUTH0_AUDIENCE = self.app.config['AUTH0_AUDIENCE']
     
     def tearDown(self) -> None:
         return super().tearDown()
@@ -40,22 +46,22 @@ class Test_UserAPI(unittest.TestCase):
     
     def get_auth_token(self):
         body={
-            "client_id": os.environ['AUTH0_CLIENT_ID'],
-            "client_secret": os.environ['AUTH0_CLIENT_SECRET'],
-            "audience": os.environ['AUTH0_AUDIENCE'],
+            "client_id": self.AUTH0_CLIENT_ID,
+            "client_secret": self.AUTH0_CLIENT_SECRET,
+            "audience": self.AUTH0_AUDIENCE,
             "grant_type": 'client_credentials'
         }
-        response = requests.post(f'https://{os.environ["AUTH0_DOMAIN"]}/oauth/token', json=body, headers={'content-type': "application/json"})
+        response = requests.post(f'https://{self.AUTH0_DOMAIN}/oauth/token', json=body, headers={'content-type': "application/json"})
         
         return response.json()['access_token']
     
     def get_user_auth_token(self, userName):
-        url = f'https://{os.environ["AUTH0_DOMAIN"]}/oauth/token' 
+        url = f'https://{self.AUTH0_DOMAIN}/oauth/token' 
         headers = {'content-type': 'application/json'}
         password = testingUsers[userName]
-        parameter = { "client_id":os.environ['AUTH0_CLIENT_ID'], 
-                    "client_secret": os.environ['AUTH0_CLIENT_SECRET'],
-                    "audience": os.environ['AUTH0_AUDIENCE'],
+        parameter = { "client_id":self.AUTH0_CLIENT_ID, 
+                    "client_secret": self.AUTH0_CLIENT_SECRET,
+                    "audience": self.AUTH0_AUDIENCE,
                     "grant_type": "password",
                     "username": userName,
                     "password": password, 
