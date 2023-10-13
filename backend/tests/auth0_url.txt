@@ -1,0 +1,4 @@
+https://dev-boa4pqqkkm3qz05i.us.auth0.com/authorize?response_type=token&client_id=dT8TdAVlj3jXfXvFuPU6kXGumiS6hAhL&redirect_uri=http://localhost:3000&audience=https://villa-systems.net
+https://dev-boa4pqqkkm3qz05i.us.auth0.com/v2/logout?client_id=dT8TdAVlj3jXfXvFuPU6kXGumiS6hAhL&return_to=http://localhost:3000
+
+https://dev-boa4pqqkkm3qz05i.us.auth0.com/.well-known/jwks.json
