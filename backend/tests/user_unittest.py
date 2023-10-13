@@ -4,12 +4,12 @@ import requests
 import html_to_json
 import json
 import os
-
-AUTH0_DOMAIN = 'dev-boa4pqqkkm3qz05i.us.auth0.com'
-AUTH0_CLIENT_ID = 'gMNTxZPKC2fepTfLRYToUbSHq8Nxn2Bu'
-AUTH0_CLIENT_SECRET = 'Y9OYXNLNL6Rvp3y4WcfEWyKq3hbs-TXTlVxIKn_8rj4HfflHRRcPq7X4oH8pAG2v'
-AUTH0_AUDIENCE = 'https://villa-systems.net'
         
+testingUsers = {
+    'qae9rz92@duck.com': 'sqQcj_B3E8rs4.jA',
+    'bdxa559p@duck.com': '-GPihnLU@hPqG9U2'
+    }
+
 class Test_UserAPI(unittest.TestCase):
     def setUp(self) -> None:
         
@@ -40,14 +40,30 @@ class Test_UserAPI(unittest.TestCase):
     
     def get_auth_token(self):
         body={
-            "client_id": AUTH0_CLIENT_ID,
-            "client_secret": AUTH0_CLIENT_SECRET,
-            "audience": AUTH0_AUDIENCE,
+            "client_id": os.environ['AUTH0_CLIENT_ID'],
+            "client_secret": os.environ['AUTH0_CLIENT_SECRET'],
+            "audience": os.environ['AUTH0_AUDIENCE'],
             "grant_type": 'client_credentials'
         }
-        response = requests.post(f'https://{AUTH0_DOMAIN}/oauth/token', json=body, headers={'content-type': "application/json"})
+        response = requests.post(f'https://{os.environ["AUTH0_DOMAIN"]}/oauth/token', json=body, headers={'content-type': "application/json"})
         
         return response.json()['access_token']
+    
+    def get_user_auth_token(self, userName):
+        url = f'https://{os.environ["AUTH0_DOMAIN"]}/oauth/token' 
+        headers = {'content-type': 'application/json'}
+        password = testingUsers[userName]
+        parameter = { "client_id":os.environ['AUTH0_CLIENT_ID'], 
+                    "client_secret": os.environ['AUTH0_CLIENT_SECRET'],
+                    "audience": os.environ['AUTH0_AUDIENCE'],
+                    "grant_type": "password",
+                    "username": userName,
+                    "password": password, 
+                    "scope": "openid, user:create, user:read"} 
+        
+        # do the equivalent of a CURL request from https://auth0.com/docs/quickstart/backend/python/02-using#obtaining-an-access-token-for-testing
+        responseDICT = json.loads(requests.post(url, json=parameter, headers=headers).text)
+        return responseDICT['access_token']
     
     def test_can_post_new_user_and_get_user(self):
         
@@ -63,7 +79,9 @@ class Test_UserAPI(unittest.TestCase):
             "home_postal_code": "x1xy2y"
         }
         
-        token = self.get_auth_token()
+        userName='qae9rz92@duck.com'
+        token = self.get_user_auth_token(userName)
+
         headers = { 'authorization': f'Bearer {token}' }
 
         response = self.client().post('/user',json=user_data, headers=headers)        
@@ -84,6 +102,19 @@ class Test_UserAPI(unittest.TestCase):
         get_response_data_json = json.loads( get_response.data )
         self.assertDictEqual(user_data, get_response_data_json['user'] )
 
+    def test_get_valid_user_returns_200(self):
+        
+        userName='qae9rz92@duck.com'
+        token = self.get_user_auth_token(userName)
+        
+        headers = { 'authorization': f'Bearer {token}' }
+        
+        get_response = self.client().get('/user/1', headers=headers)
+       
+        # Assert the response status code is NOT FOUND
+        self.assertEqual(get_response.status_code, 200)    
+        self.check_basic_response_format(get_response,['user'])
+        
     def test_get_user_with_bad_id_returns_404(self):
         
         token = self.get_auth_token()
