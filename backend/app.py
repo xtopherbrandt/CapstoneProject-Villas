@@ -48,8 +48,23 @@ def config_app(app, configuration_file_name ):
         app.config['DATABASE_URI'] = DATABASE_URI
         
     setup_db(app)
+    
     CORS(app)
-        
+
+    # CORS Headers
+    @app.after_request
+    def after_request(response):
+        response.headers.add(
+            "Access-Control-Allow-Headers", "Content-Type,Authorization,true"
+        )
+        response.headers.add(
+            "Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS"
+        )
+        response.headers.add(
+            "Access-Control-Allow-Credentials", "true"
+        )
+        return response
+            
     app.jinja_env.filters['datetime'] = format_datetime
 
     if not app.debug:

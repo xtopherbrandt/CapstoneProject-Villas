@@ -1,7 +1,8 @@
 from models.model_base import ma, Base, db
 from sqlalchemy import Integer, String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
-from marshmallow import post_load
+from marshmallow import post_load, Schema, fields
+from marshmallow.validate import Length
 
 #these imports are required to allow Marshmallow to follow links
 from models.province_state_model import ProvinceState
@@ -13,13 +14,13 @@ class User(db.Model):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     first_name: Mapped[str] = mapped_column(String(100), nullable=False)
     last_name: Mapped[str] = mapped_column(String(100), nullable=False)
-    phone_number: Mapped[str] = mapped_column(String(13), nullable=True)
-    home_address_line_1: Mapped[str] = mapped_column(String(100), nullable=True)
+    phone_number: Mapped[str] = mapped_column(String(13), nullable=False)
+    home_address_line_1: Mapped[str] = mapped_column(String(100), nullable=False)
     home_address_line_2: Mapped[str] = mapped_column(String(100), nullable=True)
-    home_city: Mapped[str] = mapped_column(String(100), nullable=True)
-    home_province: Mapped[str] = mapped_column(ForeignKey("province_state.id"), nullable=True)
-    home_country: Mapped[str] = mapped_column(ForeignKey("country.id"), nullable=True)
-    home_postal_code: Mapped[str] = mapped_column(String(6), nullable=True)
+    home_city: Mapped[str] = mapped_column(String(100), nullable=False)
+    home_province: Mapped[str] = mapped_column(ForeignKey("province_state.id"), nullable=False)
+    home_country: Mapped[str] = mapped_column(ForeignKey("country.id"), nullable=False)
+    home_postal_code: Mapped[str] = mapped_column(String(6), nullable=False)
     
     def __repr__(self):
         return f'<User {self.id} \n \
@@ -33,11 +34,26 @@ class User(db.Model):
                     home_postal_code: {self.home_postal_code} \n \
                     phone_number: {self.phone_number} >'    
 
-class UserSchema(ma.SQLAlchemyAutoSchema):
+
+class UserSchema(Schema):
+    '''
     class Meta:
         model = User
         include_fk = True
-    
+    '''
+
+    id = fields.Integer()
+    first_name = fields.String(required=True, validate=Length(min=2, error='first_name must be at least 2 characters'), error_messages={"required":"first_name is required."})
+    last_name = fields.String(required=True, validate=Length(min=2, error='last_name must be at least 2 characters'), error_messages={"required":"last_name is required."})
+    phone_number = fields.String(required=True)
+    home_address_line_1 = fields.String(required=True)
+    home_address_line_2 = fields.String(required=False)
+    home_city = fields.String(required=True)
+    home_province = fields.String(required=True)
+    home_country = fields.String(required=True)
+    home_postal_code = fields.String(required=True)
+
+        
     @post_load
     def make_user(self, data, **kwargs):
         return User(**data)

@@ -1,13 +1,16 @@
 import './App.css';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Box from '@mui/material/Box';
 import List from '@mui/material/List';
 import UnitDetail from './unitDetail';
 import {LoginButton, LogoutButton, Profile} from './auth0';
+import {CreateUser, AuthenticatedUser} from './userDetail';
 
 const HOST = "http://localhost:5000"
 
 function App() {
+  const [ authenticatedUserScope, setAuthenticatedUserScope ] = useState('')
+
   return (
     <div className="App">
       <header className="App-header">
@@ -16,6 +19,9 @@ function App() {
       <LoginButton/>
       <LogoutButton/>
       <Profile/>
+      <AuthenticatedUser setUserScope={(scope) => setAuthenticatedUserScope(scope)}></AuthenticatedUser>
+      <CreateUser authenticatedUserScope={authenticatedUserScope}></CreateUser>
+      <p>{authenticatedUserScope}</p>
     </div>
   );
 }

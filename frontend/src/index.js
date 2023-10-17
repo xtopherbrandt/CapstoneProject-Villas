@@ -13,7 +13,7 @@ root.render(
     authorizationParams={{
       redirect_uri: window.location.origin,
       audience: "https://villa-systems.net", 
-      scope: "read:user create:user"
+      scope: "read:user create:user update:user delete:user"
     }}>
     <React.StrictMode>
       <App />

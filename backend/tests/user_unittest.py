@@ -172,6 +172,20 @@ class Test_UserAPI(unittest.TestCase):
         # Assert the response status code is BAD REQUEST
         self.assertEqual(response.status_code, 400)
         
+    def test_post_user_with_a_short_first_name_returns_400(self):
+                
+        userName='qae9rz92@duck.com'
+        token = self.get_user_auth_token(userName)
+        headers = { 'authorization': f'Bearer {token}' }
+        user_data = {
+                    "first_name": "C",
+                    "last_name": "B"
+                }
+        response = self.client().post('/user', json=user_data, headers=headers)        
+        
+        # Assert the response status code is BAD REQUEST
+        self.assertEqual(response.status_code, 400)
+                
     def test_post_user_with_only_first_name_returns_400_with_descriptive_message(self):
                 
         userName='qae9rz92@duck.com'
