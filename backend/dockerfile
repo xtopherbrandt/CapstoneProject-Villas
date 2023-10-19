@@ -1,4 +1,4 @@
-FROM 899955329535.dkr.ecr.us-west-2.amazonaws.com/python:latest
+FROM --platform=linux/arm64/v8 899955329535.dkr.ecr.us-west-2.amazonaws.com/python:latest
 
 COPY . /app
 WORKDIR /app

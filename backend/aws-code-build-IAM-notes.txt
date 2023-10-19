@@ -1,0 +1,10 @@
+Have two policies for Code Build:
+- CodeBuildBasePolicy-Villas-backend-python-us-west-2
+- CodeBuildBasePolicy-Villas-direct-build-us-west-2
+
+These are created and sort of managed by the build project. If changes are made to the build project environment,
+like adding or changing Environment Variables, then need to delete these policies and allow the build project to
+recreate them (it's stupid).
+
+The main issue is that in order for the build to run docker build it needs extra permissions. This extra permission has
+been put into the ECR_Docker_Build policy which has been added to the codebuild-Villas-backend-python-service-role
