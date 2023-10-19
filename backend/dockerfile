@@ -1,7 +1,7 @@
-FROM --platform=linux/arm64/v8 899955329535.dkr.ecr.us-west-2.amazonaws.com/python:latest
+FROM --platform=linux/amd64 899955329535.dkr.ecr.us-west-2.amazonaws.com/python:latest
 
 COPY . /app
-WORKDIR /app
+WORKDIR /app/backend
 
 # Install `pip` and needed Python packages from `requirements.txt`
 RUN pip install --upgrade pip
