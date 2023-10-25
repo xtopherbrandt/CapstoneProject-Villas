@@ -12,4 +12,5 @@ Write-Output "Delete Villas deployment"
     kubectl delete deployment eks-villas-linux-deployment -n villas-deploy
 
 Write-Output "Delete the cluster"
+
     eksctl delete cluster --region=us-east-2 --name=villas-cluster
