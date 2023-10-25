@@ -1,0 +1,17 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Federated": "arn:aws:iam::899955329535:oidc-provider/{OIDC_ISSUER_URI}"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+                "StringEquals": {
+                    "{OIDC_ISSUER_URI}:sub": "system:serviceaccount:villas-ack-system:ack-rds-controller"
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,11 @@
+apiVersion: rds.services.k8s.aws/v1alpha1
+kind: DBSubnetGroup
+metadata:
+  name: {RDS_SUBNET_GROUP_NAME}
+  namespace: {VILLAS_NAMESPACE}
+spec:
+  name: {RDS_SUBNET_GROUP_NAME}
+  description: "{RDS_SUBNET_GROUP_DESCRIPTION}"
+  subnetIDs:
+    {SubnetList}
+  tags: []

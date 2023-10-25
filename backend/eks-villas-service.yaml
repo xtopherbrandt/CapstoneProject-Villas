@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: eks-villas-linux-service
+  namespace: villas-deploy
+  labels:
+    app: eks-villas-linux-app
+spec:
+  selector:
+    app: eks-villas-linux-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80

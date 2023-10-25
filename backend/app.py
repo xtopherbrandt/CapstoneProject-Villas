@@ -24,21 +24,35 @@ from error_handling import define_error_handlers
 def create_app():
     app = Flask(__name__)
     
-    configuration_file_name = os.environ.get('CONFIG_FILE_NAME', default='env_local.json')
-    print (f"Using config file: {configuration_file_name}. Set $env:CONFIG_FILE_NAME to load a different configuration.")
-
-    config_app(app, configuration_file_name)
+    USE_POD_ENV_CONFIG = os.environ.get('USE_POD_ENV_CONFIG', default=False)
+    if USE_POD_ENV_CONFIG :
+        print ('Loading config from environment variables')
+        load_config_from_env(app)
+    else :
+        configuration_file_name = os.environ.get('CONFIG_FILE_NAME', default='env_local.json')
+        print (f"Using config file: {configuration_file_name}. Set $env:CONFIG_FILE_NAME to load a different configuration.")
+        load_config_from_file(app, configuration_file_name)
+        
+    config_app(app)
     define_routes(app)
     define_error_handlers(app)
     print(list_routes(app))
     return app
 
-def config_app(app, configuration_file_name ):
+def load_config_from_file(app, configuration_file_name):
+    app.config.from_file(configuration_file_name, load=json.load)
+
+def load_config_from_env(app):
+    app.config['DB_USERNAME'] = os.environ.get('DB_USERNAME')
+    app.config['DB_PASSWORD'] = os.environ.get('DB_PASSWORD')
+    app.config['DB_HOST'] = os.environ.get('DB_HOST')
+    app.config['DB_NAME'] = os.environ.get('DB_NAME')
+    
+def config_app(app):
 
     moment = Moment(app)
     
     with app.app_context():
-        app.config.from_file(configuration_file_name, load=json.load)
         DATABASE_URI = "postgresql://{}:{}@{}/{}".format(
             app.config['DB_USERNAME'],
             app.config['DB_PASSWORD'],
@@ -46,6 +60,7 @@ def config_app(app, configuration_file_name ):
             app.config['DB_NAME']
         )
         app.config['DATABASE_URI'] = DATABASE_URI
+        print(f'Database URI: {DATABASE_URI}')
         
     setup_db(app)
     
