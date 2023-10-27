@@ -123,7 +123,7 @@ def define_routes(app):
         '''
         
         success = False
-        
+        print( f'Get user: {user_id}')
         try:
             user = User.query.filter(User.id == user_id).one_or_none()
         except Exception as e:
