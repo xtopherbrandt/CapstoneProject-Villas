@@ -20,7 +20,7 @@ def populate_enums():
         )
 
     else :
-        config_file = open(configuration_file_name)
+        config_file = open('env_local.json')
         config = json.load(config_file)
         database_uri = "postgresql://{}:{}@{}/{}".format(
             config['DB_USERNAME'],
