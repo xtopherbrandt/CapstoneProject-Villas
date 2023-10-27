@@ -8,6 +8,9 @@ Write-Output "Delete the ACK security group"
     $RDS_SECURITY_GROUP_ID = Get-Content .\security-group.id
     aws ec2 delete-security-group --group-id=$RDS_SECURITY_GROUP_ID
 
+Write-Output "Delete the DB Subnet Group"
+    aws rds delete-db-subnet-group --db-subnet-group-name villas-subnets
+
 Write-Output "Delete Villas deployment"
     kubectl delete deployment eks-villas-linux-deployment -n villas-deploy
 

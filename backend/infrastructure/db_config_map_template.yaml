@@ -1,0 +1,12 @@
+apiVersion: v1
+data:
+  USE_POD_ENV_CONFIG: "True"
+  DB_USERNAME: {RDS_DB_USERNAME}
+  DB_PASSWORD: {RDS_DB_PASSWORD}
+  DB_NAME: {RDS_DB_NAME}
+  DB_HOST: "{RDS_DB_INSTANCE_HOST}:{RDS_DB_INSTANCE_PORT}"
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: dbconfig
+  namespace: {VILLAS_NAMESPACE}
