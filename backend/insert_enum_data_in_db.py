@@ -6,21 +6,29 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 import json
 import os
-
+    
 def populate_enums():
     
-    configuration_file_name = os.environ.get('CONFIG_FILE_NAME', default='env_local.json')
-    print (f"Using config file: {configuration_file_name}. Set $env:CONFIG_FILE_NAME to load a different configuration.")
-    
-    config_file = open(configuration_file_name)
-    config = json.load(config_file)
-    database_uri = "postgresql://{}:{}@{}/{}".format(
+    USE_POD_ENV_CONFIG = os.environ.get('USE_POD_ENV_CONFIG', default=False)
+    if USE_POD_ENV_CONFIG :
+        print ('Loading config from environment variables')
+        database_uri = "postgresql://{}:{}@{}/{}".format(
+            os.environ.get('DB_USERNAME'),
+            os.environ.get('DB_PASSWORD'),
+            os.environ.get('DB_HOST'),
+            os.environ.get('DB_NAME')
+        )
+
+    else :
+        config_file = open(configuration_file_name)
+        config = json.load(config_file)
+        database_uri = "postgresql://{}:{}@{}/{}".format(
             config['DB_USERNAME'],
             config['DB_PASSWORD'],
             config['DB_HOST'],
             config['DB_NAME']
         )
-    
+            
     print(database_uri)
     engine = create_engine(database_uri)
     
