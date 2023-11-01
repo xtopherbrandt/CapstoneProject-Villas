@@ -1,23 +1,18 @@
-import ListItem from '@mui/material/ListItem';
-import IconButton from '@mui/material/IconButton';
-import ListItemText from '@mui/material/ListItemText';
-import DeleteIcon from '@mui/icons-material/Delete';
-import EditIcon from '@mui/icons-material/Edit';
-import moment from 'moment';
-import { ButtonGroup, Stack, Typography } from '@mui/material';
 import React, { useEffect, useState } from "react";
 import { useAuth0 } from '@auth0/auth0-react';
 import jwt_decode from 'jwt-decode';
-import { TextField, Button } from '@mui/material';
+import { TextField, Button, FormControlLabel, Container, Box, Grid, Avatar, Typography, Select, InputLabel, MenuItem, Link } from '@mui/material';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 
-export const CreateUser = ({authenticatedUserScope}) => {
+
+export const UserProfile = ({authenticatedUserScope}) => {
     const { isAuthenticated } = useAuth0();
     const [ showForm, setShowForm ] = useState( false )
 
-    let whatToShow=(<button onClick={() => setShowForm(true)}>Create User</button>);
-    
+    let whatToShow=(<button onClick={() => setShowForm(true)}>User Profile</button>);
+
     if (showForm){
-        whatToShow = (<CreateUserForm setShowForm={(x) => setShowForm(x)}/>);
+        whatToShow = (<UserProfileForm setShowForm={(x) => setShowForm(x)}/>);
     }
 
     return (
@@ -29,7 +24,7 @@ export const CreateUser = ({authenticatedUserScope}) => {
         )
         
     );
-  };
+};
 
 export const AuthenticatedUser = ({setUserScope}) => {
     const { isAuthenticated, getAccessTokenSilently } = useAuth0();
@@ -87,7 +82,20 @@ export const AuthenticatedUser = ({setUserScope}) => {
     )
 }
 
-export const CreateUserForm = ({setShowForm}) => {
+function Copyright(props) {
+  return (
+    <Typography variant="body2" color="text.secondary" align="center" {...props}>
+      {'Copyright © '}
+      <Link color="inherit" href="https://villas-management.qqq/">
+        Villas Management
+      </Link>{' '}
+      {new Date().getFullYear()}
+      {'.'}
+    </Typography>
+  );
+}
+
+export const UserProfileForm = ({setShowForm}) => {
     const { isAuthenticated, getAccessTokenSilently } = useAuth0();
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
@@ -98,6 +106,7 @@ export const CreateUserForm = ({setShowForm}) => {
     const [postalCode, setPostalCode] = useState('');
     const [country, setCountry] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
+    const [email, setEmail] = useState('');
     const [ isLoading, setIsLoading ] = useState(true);
 
     const postVillaUser = async () => {
@@ -156,81 +165,156 @@ export const CreateUserForm = ({setShowForm}) => {
     };
   
     return (
-      <form onSubmit={handleSubmit}>
-        <TextField
-          label="First Name"
-          variant="outlined"
-          value={firstName}
-          onChange={(e) => setFirstName(e.target.value)}
-          required
-        />
-  
-        <TextField
-          label="Last Name"
-          variant="outlined"
-          value={lastName}
-          onChange={(e) => setLastName(e.target.value)}
-          required
-        />
-  
-        <TextField
-          label="Street Address Line 1"
-          variant="outlined"
-          value={streetAddressLine1}
-          onChange={(e) => setStreetAddressLine1(e.target.value)}
-          required
-        />
-  
-        <TextField
-          label="Street Address Line 2"
-          variant="outlined"
-          value={streetAddressLine2}
-          onChange={(e) => setStreetAddressLine2(e.target.value)}
-        />
-  
-        <TextField
-          label="City"
-          variant="outlined"
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-          required
-        />
-  
-        <TextField
-          label="Province/State"
-          variant="outlined"
-          value={province}
-          onChange={(e) => setProvince(e.target.value)}
-          required
-        />
-  
-        <TextField
-          label="Country"
-          variant="outlined"
-          value={country}
-          onChange={(e) => setCountry(e.target.value)}
-          required
-        />
-  
-        <TextField
-          label="Postal Code"
-          variant="outlined"
-          value={postalCode}
-          onChange={(e) => setPostalCode(e.target.value)}
-          required
-        />
-  
-        <TextField
-          label="Phone Number"
-          variant="outlined"
-          value={phoneNumber}
-          onChange={(e) => setPhoneNumber(e.target.value)}
-          required
-        />
-  
-        <Button variant="contained" type="submit">
-          Create User
-        </Button>
-      </form>
+      <Container component="main" maxWidth="xs">
+
+        <Box
+          sx={{
+            marginTop:8,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center'
+          }}
+        >
+          <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
+            <LockOutlinedIcon />
+          </Avatar>
+          <Typography component="h1" variant="h5">
+            Create User
+          </Typography>
+          <Box component="form" onSubmit={handleSubmit} sx={{ mt:3 }}>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  autoComplete="given-name"
+                  label="First Name"
+                  id="first_name"
+                  name="first_name"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  required
+                  fullWidth
+                  autoFocus
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  autoComplete="family-name"
+                  label="Last Name"
+                  id="last_name"
+                  name="last_name"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  required
+                  fullWidth
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  required
+                  fullWidth
+                  id="email"
+                  label="Email Address"
+                  name="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="Phone Number"
+                  id="phone_number"
+                  name="phone_number"
+                  autoComplete="phone-number"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  required
+                  fullWidth
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="Street Address Line 1"
+                  id="street_address_line_1"
+                  name="street_address_line_1"
+                  value={streetAddressLine1}
+                  onChange={(e) => setStreetAddressLine1(e.target.value)}
+                  required
+                  fullWidth
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="Street Address Line 2"
+                  id="street_address_line_2"
+                  name="street_address_line_2"
+                  value={streetAddressLine2}
+                  onChange={(e) => setStreetAddressLine2(e.target.value)}
+                  fullWidth
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="City"
+                  name="city"
+                  id="city"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  required
+                  fullWidth
+                  autoComplete="city"
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Select
+                  label="Province"
+                  id="province"
+                  value={province}
+                  onChange={(e) => setProvince(e.target.value)}
+                  required
+                  fullWidth
+                >
+                  <MenuItem value="AB">Alberta</MenuItem>
+                  <MenuItem value="BC">British Columbia</MenuItem>
+                </Select>
+              </Grid>              
+              <Grid item xs={12}>
+                <Select
+                  label="Country"
+                  id="country"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  required
+                  fullWidth
+                >
+                  <MenuItem value="CAN">Canada</MenuItem>
+                  <MenuItem value="US">United States of America</MenuItem>
+                </Select>  
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="Postal Code"
+                  id="postal_code"
+                  name="postal_code"
+                  value={postalCode}
+                  onChange={(e) => setPostalCode(e.target.value)}
+                  required
+                  fullWidth
+                />
+
+              </Grid>
+              <Button 
+                fullWidth 
+                variant="contained" 
+                type="submit"
+                sx={{ mt: 3, mb:2 }}
+              >
+                Create User
+              </Button>
+            </Grid>            
+          </Box>
+        </Box>
+        <Copyright sx={{ mt: 5 }} />
+      </Container>      
     );
   };

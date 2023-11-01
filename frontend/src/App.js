@@ -4,7 +4,8 @@ import Box from '@mui/material/Box';
 import List from '@mui/material/List';
 import UnitDetail from './unitDetail';
 import {LoginButton, LogoutButton, Profile} from './auth0';
-import {CreateUser, AuthenticatedUser} from './userDetail';
+import {UserProfile, AuthenticatedUser} from './userDetail';
+import { UserInvitation } from './userInvitation';
 
 const HOST = "http://localhost:5000"
 
@@ -12,19 +13,19 @@ function App() {
   const [ authenticatedUserScope, setAuthenticatedUserScope ] = useState('')
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Villas</h1>
-      </header>
-      <LoginButton/>
-      <LogoutButton/>
-      <Profile/>
-      <AuthenticatedUser setUserScope={(scope) => setAuthenticatedUserScope(scope)}></AuthenticatedUser>
-      <CreateUser authenticatedUserScope={authenticatedUserScope}></CreateUser>
-      <p>{authenticatedUserScope}</p>
-    </div>
+      <div className="App">
+        <header className="App-header">
+          <h1>Villas</h1>
+        </header>
+        <LoginButton/>
+        <LogoutButton/>
+        <AuthenticatedUser setUserScope={(scope) => setAuthenticatedUserScope(scope)}></AuthenticatedUser>
+        <UserInvitation authenticatedUserScope={authenticatedUserScope}></UserInvitation>
+        <p>{authenticatedUserScope}</p>
+      </div>
   );
 }
+
 
 function getUserInfo(){
   console.log( "User Info" );

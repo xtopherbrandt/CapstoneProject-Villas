@@ -48,7 +48,14 @@ def define_error_handlers(app):
             'error': 405,
             'message': 'Method not allowed.'
         }), 405
-        
+                
+    @app.errorhandler(409)
+    def handle_conflict(error):
+        return jsonify({
+            'success': False,
+            'error': 409,
+            'message': f'Conflict: {error.description}'
+        }), 409
         
     @app.errorhandler(422)
     def handle_unprocessable_content(self):
@@ -63,5 +70,5 @@ def define_error_handlers(app):
         return jsonify({
             "success": False, 
             "error": 500, 
-            "message": "Server error."
+            "message": error.description
         }), 500

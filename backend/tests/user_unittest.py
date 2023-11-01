@@ -4,6 +4,8 @@ import requests
 import html_to_json
 import json
 import os
+import random, string
+import urllib.parse
 
 class Test_UserAPI(unittest.TestCase):
     def setUp(self) -> None:
@@ -18,6 +20,13 @@ class Test_UserAPI(unittest.TestCase):
         self.AUTH0_CLIENT_ID = self.app.config['AUTH0_CLIENT_ID']
         self.AUTH0_CLIENT_SECRET = self.app.config['AUTH0_CLIENT_SECRET']
         self.AUTH0_AUDIENCE = self.app.config['AUTH0_AUDIENCE']
+        
+        self.AUTH0_BACKEND_CLIENT_ID = self.app.config['AUTH0_BACKEND_CLIENT_ID']
+        self.AUTH0_BACKEND_CLIENT_SECRET = self.app.config['AUTH0_BACKEND_CLIENT_SECRET']
+        self.AUTH0_MANAGEMENT_API_AUDIENCE = self.app.config['AUTH0_MANAGEMENT_API_AUDIENCE']
+        
+        self.AUTH0_M2M_TEST_CLIENT_ID = self.app.config['AUTH0_M2M_TEST_CLIENT_ID']
+        self.AUTH0_M2M_TEST_CLIENT_SECRET = self.app.config['AUTH0_M2M_TEST_CLIENT_SECRET']
         
         self.testingUsers = self.app.config['TEST_USERS']
     
@@ -39,19 +48,20 @@ class Test_UserAPI(unittest.TestCase):
             self.assertIn('message', result_data_json, 'Incorrect response message, missing error message')
         return
     
-    def get_auth_token(self):
+    def get_machine_2_machine_auth_token(self):
         '''
         Gets a machine to machine auth token from Auth0
         Client ID and Client Secret will be for the Test Application in Auth0 not the production application
         '''
         body={
-            "client_id": self.AUTH0_CLIENT_ID,
-            "client_secret": self.AUTH0_CLIENT_SECRET,
+            "client_id": self.AUTH0_M2M_TEST_CLIENT_ID,
+            "client_secret": self.AUTH0_M2M_TEST_CLIENT_SECRET,
             "audience": self.AUTH0_AUDIENCE,
             "grant_type": 'client_credentials'
         }
-        response = requests.post(f'https://{self.AUTH0_DOMAIN}/oauth/token', json=body, headers={'content-type': "application/json"})
         
+        response = requests.post(f'https://{self.AUTH0_DOMAIN}/oauth/token', json=body, headers={'content-type': "application/json"})
+
         return response.json()['access_token']
     
     # scopes need to be space delimeted
@@ -89,6 +99,27 @@ class Test_UserAPI(unittest.TestCase):
         # do the equivalent of a CURL request from https://auth0.com/docs/quickstart/backend/python/02-using#obtaining-an-access-token-for-testing
         responseDICT = json.loads(requests.post(url, json=parameter, headers=headers).text)
         return responseDICT['access_token']
+
+    def get_management_api_auth_token(self):
+        '''
+        Gets a machine to machine auth token for the Villas ap from Auth0
+        Client ID and Client Secret will be for the Test Application in Auth0 not the production application
+        '''
+        auth0_base_uri = f'https://{self.AUTH0_DOMAIN}'
+        
+        body={
+            "client_id": self.AUTH0_BACKEND_CLIENT_ID,
+            "client_secret": self.AUTH0_BACKEND_CLIENT_SECRET,
+            "audience": self.AUTH0_MANAGEMENT_API_AUDIENCE,
+            "grant_type": 'client_credentials',
+        }
+        response = requests.post(f'{auth0_base_uri}/oauth/token', json=body, headers={'content-type': "application/json"})
+        
+        return response.json()['access_token']
+
+    def random_email_name_string(self, length):
+        letters = string.ascii_lowercase
+        return ''.join(random.choice(letters) for i in range(length))
     
     def test_can_post_new_user_and_get_user(self):
         
@@ -116,7 +147,7 @@ class Test_UserAPI(unittest.TestCase):
         self.check_basic_response_format(response,['user'])
         
         post_response_data_json = json.loads( response.data )
-        print(post_response_data_json)
+
         user_id = post_response_data_json['user']['id']
         
         get_response = self.client().get(f'/user/{user_id}', headers=headers)
@@ -230,6 +261,55 @@ class Test_UserAPI(unittest.TestCase):
         
         # Assert the response status code is OK
         self.assertEqual(response.status_code, 401)
+        
+    def test_invite_user_creates_a_new_user_with_correct_permissions(self):
+        
+        email_address_name = self.random_email_name_string(8)
+        email_address = f'{email_address_name}@nowhere.com'
+        
+        token = self.get_machine_2_machine_auth_token()
+        headers = { 'authorization': f'Bearer {token}' }
+                
+        user_data = {
+            "email_address": email_address,
+            "user_role": "villa-guest",
+            "unit_number": 34
+        }
+
+        response = self.client().post('/user-invite',json=user_data, headers=headers )   
+        
+        self.assertEqual(response.status_code, 200, f'User Invite should return a 200 status. Response:{response.json["message"] if "message" in response.json else "no message" }')
+        
+        self.check_basic_response_format(response, ['user_id'])
+                                         
+        user_id = response.json['user_id']
+        
+        token = self.get_management_api_auth_token()
+        
+        auth0_base_uri = f'https://{self.AUTH0_DOMAIN}'
+        get_user_role_endpoint = f'{auth0_base_uri}/api/v2/users/{urllib.parse.quote(user_id)}/roles'
+
+        headers = {
+            'Accept' : 'application/json',
+            'Authorization' : f'Bearer {token}'
+        }
+            
+        # need to switch to Requests lib to make a request to the users role endpoint here
+        # the flask client gets a 404 with exactly the same URL
+        response = requests.request("GET", get_user_role_endpoint, headers=headers)
+        
+        self.assertEqual(response.status_code, 200, f'Get User Roles should return a 200 status.')
+        
+        self.assertEqual(1,len(response.json()), "User should have one role: villa-guest")
+        role = response.json()[0]['name']
+        self.assertEquals(role, 'villa-guest', "User should have role: villa-guest")
+        
+        # Now delete the user
+        delete_user_endpoint = f'{auth0_base_uri}/api/v2/users/{urllib.parse.quote(user_id)}'
+        response = requests.request("DELETE", delete_user_endpoint, headers=headers)
+
+        self.assertEqual(response.status_code, 204, f'Delete User should return a 204 status.')
+        
         
 if __name__ == '__main__':
     unittest.main()

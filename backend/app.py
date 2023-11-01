@@ -41,12 +41,16 @@ def create_app():
 
 def load_config_from_file(app, configuration_file_name):
     app.config.from_file(configuration_file_name, load=json.load)
+    
 
 def load_config_from_env(app):
     app.config['DB_USERNAME'] = os.environ.get('DB_USERNAME')
     app.config['DB_PASSWORD'] = os.environ.get('DB_PASSWORD')
     app.config['DB_HOST'] = os.environ.get('DB_HOST')
     app.config['DB_NAME'] = os.environ.get('DB_NAME')
+    app.config['AUTH0_BACKEND_CLIENT_ID'] = os.environ.get('AUTH0_BACKEND_CLIENT_ID')
+    app.config['AUTH0_BACKEND_CLIENT_SECRET'] = os.environ.get('AUTH0_BACKEND_CLIENT_SECRET')
+    app.config['AUTH0_MANAGEMENT_API_AUDIENCE'] = os.environ.get('AUTH0_MANAGEMENT_API_AUDIENCE')
     
 def config_app(app):
 
