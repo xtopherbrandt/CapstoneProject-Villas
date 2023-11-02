@@ -1,5 +1,6 @@
 from flask import Flask, request,jsonify, abort
 from models.user_model import User, UserSchema
+from models.user_contact_model import UserContact, UserContactSchema
 from models.model_base import db
 import requests
 from marshmallow.exceptions import ValidationError
@@ -77,6 +78,7 @@ def define_routes(app):
         Invite User
             Triggers an invitation email to be sent from Auth0 to the e-mail address.
             The user is created in the Auth0 database, given the specified role and has the unit number saved in their meta-data
+            The villa user is created to map to the Auth0 user
         Body: 
             {
                 "email_address" : string : required
@@ -86,19 +88,25 @@ def define_routes(app):
         Response:
             {
                 "success" : Boolean
+                "user_id" : string
             }
             
         Status : 
             200 - User invitation sent
             409 - User already exists
         '''
-        success = False
         
         user_data = request.get_json()
 
         token = get_management_api_auth_token(app)      
         
         auth0_base_uri = f'https://{app.config["AUTH0_DOMAIN"]}'
+        
+        headers = {
+            'Content-Type': "application/json",
+            'Accept' : 'application/json',
+            'Authorization' : f'Bearer {token}'
+        }
         
         #check the role first to avoid creating a user with no role
         role_id = get_id_of_role(app, token, user_data['user_role'])
@@ -107,68 +115,20 @@ def define_routes(app):
             abort(400, f'Invalid role: {user_data["user_role"]}')
         
         #now create the user in Auth0
-        create_user_endpoint = '/api/v2/users'
-        auth0_database_connection_name = 'Username-Password-Authentication'
-        
-        headers = {
-            'Content-Type': "application/json",
-            'Accept' : 'application/json',
-            'Authorization' : f'Bearer {token}'
-        }
-        body = {
-            "email": user_data['email_address'],
-            "password" : random_string(20),
-            "user_metadata": { 'unit_number' : user_data['unit_number'] },
-            "connection": auth0_database_connection_name           
-        }
-        
-        response = requests.post(f'{auth0_base_uri}{create_user_endpoint}', json=body, headers=headers)
-        
-        if response.status_code == 201 :
-            success = True
-        elif response.status_code == 409 : #user already exists
-            abort(409, "User already exists.")
-        else :
-            message = f'Auth0 create user API responded with {response.status_code}'
-            print( message )
-            abort(500, message)
-        
-        if 'user_id' in response.json():
-            user_id = response.json()['user_id']
-        else:
-            abort(500, 'Auth0 did not provide a user_id in the response to create user')
+        user_id = create_auth0_user( auth0_base_uri, headers, user_data['email_address'], user_data['unit_number'] )
         
         # Next assign the user to the role
-        assign_to_role_endpoint = f'/api/v2/roles/{role_id}/users'
+        assign_user_to_role(auth0_base_uri, headers, user_id, role_id)
 
-        body = {
-            "users" : [f'{user_id}']
-        }        
-
-        response = requests.post(f'{auth0_base_uri}{assign_to_role_endpoint}', json=body, headers=headers)
-
-        if response.status_code == 200 :
-            success = True
-        else :
-            message = f'Auth0 assign user to role API responded with {response.status_code}'
-            print( message )
-            abort(500, message)
-
+        # Now create a user in our database
+        create_user(user_id)
+        
         # Finally, send a password change e-mail to the new user
         # Auth0 needs to be configured with the login url for Villas so that the user can be redirected to Villas after changing their password
-        password_change_endpoint = f'/dbconnections/change_password'
-        body = {
-            "email": user_data['email_address'],
-            "client_id": app.config['AUTH0_CLIENT_ID'],
-            "connection": "Username-Password-Authentication"
-        }   
-
-        response = requests.post(f'{auth0_base_uri}{password_change_endpoint}', json=body, headers=headers)
-        
-        print(response.text)
+        send_change_password_email(auth0_base_uri, headers, app.config['AUTH0_CLIENT_ID'], user_data['email_address'])
         
         return jsonify({
-            'success': success,
+            'success': True,
             'user_id': user_id
         })
     
@@ -179,7 +139,7 @@ def define_routes(app):
         Create User Profile
         Body: Valid User object:
             {
-                "auth0_user_id" : string : required,
+                "user_id" : string : required,
                 "first_name" : string : required,
                 "last_name" : string : required,
                 "home_address_line_1" : string,
@@ -206,7 +166,7 @@ def define_routes(app):
         print(user_data)
             
         try:
-            user_schema = UserSchema()
+            user_schema = UserContactSchema()
             user = user_schema.load(user_data)
         except ValidationError as e:
             print(e.messages)
@@ -233,9 +193,9 @@ def define_routes(app):
         
     @app.route('/user/<int:user_id>', methods=['GET'])
     @require_auth('read:user')
-    def get_user(user_id):
+    def get_user_contact(user_id):
         '''
-        Get User
+        Get User Contact
 
         Route: /user/<id>
         Method: GET
@@ -247,9 +207,9 @@ def define_routes(app):
         '''
         
         success = False
-        print( f'Get user: {user_id}')
+        print( f'Get user contact: {user_id}')
         try:
-            user = User.query.filter(User.id == user_id).one_or_none()
+            user = UserContact.query.filter(User.user_id == user_id).one_or_none()
         except Exception as e:
             if hasattr(e, 'message'):
                 print(e.message)
@@ -258,17 +218,17 @@ def define_routes(app):
             abort(500)
         if user is None:
             abort(404)            
-        user_schema = UserSchema()
-        user_deserialized = user_schema.dump(user)
+        user_contact_schema = UserContactSchema()
+        user_contact_deserialized = user_contact_schema.dump(user)
         
         print(user)
  
         success = True
 
-        print(user_schema.dump(user))
+        print(user_contact_schema.dump(user))
         return jsonify({
             'success': success,
-            'user': user_deserialized
+            'user': user_contact_deserialized
         })        
         
 def get_id_of_role(app, token, role_name) -> string:
@@ -294,3 +254,81 @@ def get_roles(app, token) -> []:
     response = requests.request("GET", url, headers=headers, data=payload)
 
     return response.json()
+
+def create_auth0_user(auth0_base_uri, headers, email_address, unit_number) -> string:
+    
+    create_user_endpoint = '/api/v2/users'
+    auth0_database_connection_name = 'Username-Password-Authentication'
+    
+    body = {
+        "email": email_address,
+        "password" : random_string(20),
+        "user_metadata": { 'unit_number' : unit_number },
+        "connection": auth0_database_connection_name           
+    }
+    
+    response = requests.post(f'{auth0_base_uri}{create_user_endpoint}', json=body, headers=headers)
+    
+    if response.status_code == 409 : #user already exists
+        abort(409, "User already exists.")
+    elif response.status_code != 201 :
+        message = f'Auth0 create user API responded with {response.status_code}'
+        print( message )
+        abort(500, message)
+    
+    if 'user_id' in response.json():
+        user_id = response.json()['user_id']
+    else:
+        message = 'Auth0 did not provide a user_id in the response to create user'
+        print( message )
+        abort( 500, message )
+
+    return user_id
+    
+def assign_user_to_role(auth0_base_uri, headers, user_id, role_id):
+    
+    assign_to_role_endpoint = f'/api/v2/roles/{role_id}/users'
+
+    body = {
+        "users" : [f'{user_id}']
+    }        
+
+    response = requests.post(f'{auth0_base_uri}{assign_to_role_endpoint}', json=body, headers=headers)
+
+    if response.status_code != 200 :
+        message = f'Auth0 assign user to role API responded with {response.status_code}'
+        print( message )
+        abort(500, message)
+        
+                
+def create_user(auth0_user_id) -> User :
+    if auth0_user_id is None: abort(500, 'Need a valid Auth0 User Id to create a user')
+    
+    user = User(auth0_id = auth0_user_id)
+    try:
+        db.session.add(user)
+        db.session.commit()
+    except Exception as e:
+        if hasattr(e, 'message'):
+            print(e.message)
+        else:
+            print(e)
+        abort(500)                
+    
+    return user
+
+def send_change_password_email(auth0_base_uri, headers, client_id, email_address):
+    
+    password_change_endpoint = f'/dbconnections/change_password'
+    body = {
+        "email": email_address,
+        "client_id": client_id,
+        "connection": "Username-Password-Authentication"
+    }   
+
+    response = requests.post(f'{auth0_base_uri}{password_change_endpoint}', json=body, headers=headers)
+    
+    if response.status_code != 200:
+        message = f'Auth0 change password trigger responded with {response.status_code}'
+        print( message )
+        abort(500, message)          

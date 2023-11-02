@@ -28,3 +28,4 @@ backend/infrastructure/db-subnet-groups.yaml
 backend/infrastructure/db_config_map.yaml
 EC2-Kickstart.ppk
 
+backend/tests/test_users.txt
