@@ -7,7 +7,6 @@ WORKDIR /app
 RUN pip install --upgrade pip
 
 RUN pip install -r requirements.txt
-RUN flask db upgrade
 
 ENV FLASK_RUN_PORT=5000
 ENV FLASK_RUN_HOST=0.0.0.0
