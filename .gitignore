@@ -24,7 +24,6 @@ backend/infrastructure/access-keys.ps1
 backend/env_local.json
 backend/infrastructure/security-group.id
 backend/infrastructure/rds-postgres.yaml
-backend/infrastructure/eks-villas-deployment.yaml
 backend/infrastructure/db-subnet-groups.yaml
 backend/infrastructure/db_config_map.yaml
 EC2-Kickstart.ppk

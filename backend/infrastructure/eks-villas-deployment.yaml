@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eks-villas-linux-deployment
+  namespace: villas-deploy
+  labels:
+    app: eks-villas-linux-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: eks-villas-linux-app
+  template:
+    metadata:
+      labels:
+        app: eks-villas-linux-app
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+      containers:
+      - name: villas
+        image: 899955329535.dkr.ecr.us-west-2.amazonaws.com/villas-ecr:villas
+        ports:
+        - name: http
+          containerPort: 5000
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: USE_POD_ENV_CONFIG
+            valueFrom: 
+              configMapKeyRef:
+                name: dbconfig
+                key: USE_POD_ENV_CONFIG
+          - name: DB_USERNAME
+            valueFrom: 
+              configMapKeyRef:
+                name: dbconfig
+                key: DB_USERNAME
+          - name: DB_PASSWORD
+            valueFrom: 
+              configMapKeyRef:
+                name: dbconfig
+                key: DB_PASSWORD
+          - name: DB_NAME
+            valueFrom: 
+              configMapKeyRef:
+                name: dbconfig
+                key: DB_NAME
+          - name: DB_HOST
+            valueFrom: 
+              configMapKeyRef:
+                name: dbconfig
+                key: DB_HOST
+          - name: AUTH0_BACKEND_CLIENT_ID
+            valueFrom: 
+              configMapKeyRef:
+                name: dbconfig
+                key: AUTH0_BACKEND_CLIENT_ID
+          - name: AUTH0_BACKEND_CLIENT_SECRET
+            valueFrom: 
+              configMapKeyRef:
+                name: dbconfig
+                key: AUTH0_BACKEND_CLIENT_SECRET
+          - name: AUTH0_MANAGEMENT_API_AUDIENCE
+            valueFrom: 
+              configMapKeyRef:
+                name: dbconfig
+                key: AUTH0_MANAGEMENT_API_AUDIENCE
+      nodeSelector:
+        kubernetes.io/os: linux
