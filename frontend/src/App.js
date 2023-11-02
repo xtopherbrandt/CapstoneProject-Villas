@@ -7,7 +7,7 @@ import {LoginButton, LogoutButton, Profile} from './auth0';
 import {UserProfile, AuthenticatedUser} from './userDetail';
 import { UserInvitation } from './userInvitation';
 
-const HOST = "http://localhost:5000"
+const HOST = process.env.REACT_APP_SERVER_HOST;
 
 function App() {
   const [ authenticatedUserScope, setAuthenticatedUserScope ] = useState('')
