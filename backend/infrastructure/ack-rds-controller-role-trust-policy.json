@@ -1,0 +1,17 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Federated": "arn:aws:iam::899955329535:oidc-provider/oidc.eks.us-east-2.amazonaws.com/id/F9039F10721A6416A56BA873332F0E03"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+                "StringEquals": {
+                    "oidc.eks.us-east-2.amazonaws.com/id/F9039F10721A6416A56BA873332F0E03:sub": "system:serviceaccount:villas-ack-system:ack-rds-controller"
+                }
+            }
+        }
+    ]
+}
