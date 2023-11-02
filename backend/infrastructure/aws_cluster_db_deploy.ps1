@@ -79,21 +79,21 @@ Write-Output "    authorize the pods to connect to the database on port 5432:"
 
 Write-Output "Set up PostgreSQL database instance"
 Write-Output "    Create secret / master password:"
-    $RDS_DB_USERNAME="xtopher"
-    $RDS_DB_PASSWORD="wolf0840"
+    $DB_USERNAME="xtopher"
+    $DB_PASSWORD="wolf0840"
     $RDS_DB_INSTANCE_NAME = "villas-rds"
-    $RDS_DB_NAME = "villas"
+    $DB_NAME = "villas"
 
-    kubectl create secret generic -n $VILLAS_NAMESPACE villas-rds-password --from-literal=username="${RDS_DB_USERNAME}" --from-literal=password="${RDS_DB_PASSWORD}"
+    kubectl create secret generic -n $VILLAS_NAMESPACE villas-rds-password --from-literal=username="${DB_USERNAME}" --from-literal=password="${DB_PASSWORD}"
 
 Write-Output "    generate rds-postgres.yaml" 
     (Get-Content .\rds-postgres-template.yaml). 
         Replace('{RDS_DB_INSTANCE_NAME}', $RDS_DB_INSTANCE_NAME).
         Replace('{VILLAS_NAMESPACE}', $VILLAS_NAMESPACE).
         Replace('{RDS_SUBNET_GROUP_NAME}', $RDS_SUBNET_GROUP_NAME).
-        Replace('{RDS_DB_USERNAME}', $RDS_DB_USERNAME).
+        Replace('{DB_USERNAME}', $DB_USERNAME).
         Replace('{RDS_SECURITY_GROUP_ID}', $RDS_SECURITY_GROUP_ID).
-        Replace('{RDS_DB_NAME}', $RDS_DB_NAME) |
+        Replace('{DB_NAME}', $DB_NAME) |
         Set-Content .\rds-postgres.yaml
 
 Write-Output "    provision database:"

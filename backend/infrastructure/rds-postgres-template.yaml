@@ -9,11 +9,11 @@ spec:
   backupRetentionPeriod: 7
   dbInstanceClass: db.t4g.micro
   dbInstanceIdentifier: {RDS_DB_INSTANCE_NAME}
-  dbName: {RDS_DB_NAME}
+  dbName: {DB_NAME}
   dbSubnetGroupName: {RDS_SUBNET_GROUP_NAME}
   engine: postgres
   engineVersion: "14"
-  masterUsername: {RDS_DB_USERNAME}
+  masterUsername: {DB_USERNAME}
   masterUserPassword:
     namespace: {VILLAS_NAMESPACE}
     name: villas-rds-password
