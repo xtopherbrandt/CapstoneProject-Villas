@@ -17,6 +17,7 @@ python-dateutil = "*"
 babel = "*"
 flask-cors = "*"
 requests = "*"
+authlib = "*"
 
 [dev-packages]
 
