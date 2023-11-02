@@ -2,92 +2,45 @@ Following this guide: https://aws.amazon.com/blogs/database/deploy-amazon-rds-da
     which uses this guide: https://aws-controllers-k8s.github.io/community/docs/tutorials/rds-example/#install-the-ack-service-controller-for-rds
         which uses this guide: https://aws-controllers-k8s.github.io/community/docs/user-docs/irsa/
 
+Cluster and Database deployment
 
-AWS CLI Tools
-    aws configure
+    IAM Role For ACK-RDS-controller
+        Created a custom role: ack-rds-controller following the scripts in Step 2 of https://aws-controllers-k8s.github.io/community/docs/user-docs/irsa/
+        Did this manually with the account and oidc issuer hard coded. --> Not sure of the OIDC issuer is static between cluster tear-down and recreate
 
-Create cluster
-    eksctl create cluster --name villas-cluster --nodes=2 --version=1.27 --instance-types=t2.micro --region=us-east-2
-
-Check nodes
-    kubectl get nodes
-
-Create a Kubernetes namespace
-    kubectl create namespace villas-deploy
-
-Cluster Identity Mapping
-    eksctl create iamidentitymapping --cluster villas-cluster --region=us-east-2 --arn arn:aws:iam::899955329535:user/Chris --group eks-console-dashboard-full-access-group --no-duplicate-arns
-    eksctl create iamidentitymapping --cluster villas-cluster --region=us-east-2 --arn arn:aws:iam::899955329535:role/Kubernetes-Node-Viewer --group eks-console-dashboard-full-access-group --no-duplicate-arns
-
-Create clusterrole and clusterrolebinding
-    kubectl apply -f https://s3.us-west-2.amazonaws.com/amazon-eks/docs/eks-console-full-access.yaml
-
-Install ACK services controller
-    aws ecr-public get-login-password --region us-east-1 | helm registry login --username AWS --password-stdin public.ecr.aws
-        (note here: had to remove the "credsStore" key from the helm config.json before this would work)
-    helm install --create-namespace -n villas-ack-system oci://public.ecr.aws/aws-controllers-k8s/rds-chart --version=0.0.27 --generate-name --set=aws.region=us-east-2
-        (note here: had to downgrade to helm 3.12.2 to avoid an authentication error with ECR)
-    eksctl utils associate-iam-oidc-provider --cluster villas-cluster --region us-east-2 --approve
-    aws eks describe-cluster --name villas-cluster --region us-east-2 --query "cluster.identity.oidc.issuer"
-        --> get the OIDC provider from here and update the Trust Relationship in the ack-rds-controller role
-
-Associate IAM ack-rds-role to service account  
-        (have the ack-rds-controller role hand crafted based on this article: https://aws-controllers-k8s.github.io/community/docs/user-docs/irsa/ )
-    kubectl annotate serviceaccount -n villas-ack-system ack-rds-controller eks.amazonaws.com/role-arn=arn:aws:iam::899955329535:role/ack-rds-controller
-    Need to restart the pods:
-        kubectl get deployments -n villas-ack-system
-        kubectl -n villas-ack-system rollout restart deployment <ACK deployment name from last command>
-        kubectl get pods -n villas-ack-system
-
-Set up database networking
-    get the vpc:
-        aws eks describe-cluster --name villas-cluster --region us-east-2 --query "cluster.resourcesVpcConfig.vpcId" --output text
-    get the subnets:
-        aws ec2 describe-subnets --filters "Name=vpc-id,Values=vpc-072dc40183bdda8be" --query 'Subnets[*].SubnetId' --output text
-
-        --> get the subnet values and update the db-subnet-groups.yaml field
-    create the subnet group:
-        kubectl apply -f db-subnet-groups.yaml
-
-Set up Database Security group
-    get the CIDR block:
-        aws ec2 describe-vpcs --vpc-ids $EKS_VPC_ID --query "Vpcs[].CidrBlock" --output text
-    get the security group id:
-        aws ec2 create-security-group --group-name "${RDS_SUBNET_GROUP_NAME}" --description "${RDS_SUBNET_GROUP_DESCRIPTION}" --vpc-id "${EKS_VPC_ID}" --output text
-    authorize the ingress:
-        aws ec2 authorize-security-group-ingress --group-id "${RDS_SECURITY_GROUP_ID}" --protocol tcp --port 5432 --cidr "${EKS_CIDR_RANGE}"
-
-Set up database
-    Create secret / master password:
-        kubectl create secret generic -n $VILLAS_NAMESPACE villas-rds-password --from-literal=username="${RDS_DB_USERNAME}" --from-literal=password="${RDS_DB_PASSWORD}"
-
-    Create db instance:
-        (script uses a template and string replaces placeholders)
-        kubectl apply -f .\rds-postgres.yaml
-    Check the db instance provisioning:
-        kubectl describe dbinstance villas-rds
-            (note that the principle running these commands must have either the rds-service-role-creation policy or the manage-service-linked-roles policy
-                otherwise it results in an error: Unable to create the resource. Verify that you have permission to create service linked role.
-                see for more details:  http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.IAM.ServiceLinkedRoles.html)
-
+    Permissions Required For Deployment
+        The user running the deployment scripts needs many permissions that are not well documented. The following policies are in place:
         
-Configure deployment
-    kubectl apply -f eks-villas-deployment.yaml
-    kubectl apply -f eks-villas-service.yaml
+        AWS Managed:
+            AmazonEC2ContainerRegistryFullAccess
+            AmazonEC2FullAccess
+            AWSCloudFormationFullAccess
+            IAMFullAccess
+            IAMUserChangePassword
+        
+        Customer Managed
+            EKS_All_Access
+            get-ecr-token
+            IAM_Limited_Access
+            RDS_Limited_Describe
+            rds-delete
+            rds-service-role-creation
+            View-Kubernetes-Nodes
 
-Expose a load balancer in front of the cluster:
-    kubectl expose deployment -n villas-deploy eks-villas-linux-deployment --type=LoadBalancer --name=villas-external-service
+    Logical Service Layout
+        The deployment scripts create a cluster.
+        The AWS Controller for Kubernetes is then added to that cluster from a helm chart
+            The ACK allows control of the database instance through Kubernetes
+        A database instance is deployed through the ACK. It is deployed within the AWS RDS service and is visible there.
+            A single database (villas) is deployed in this instance but in the future we could deploy villas-test here too.
+        The villas service (python container) is then deployed to the cluster
+            ** need to determine how to get the DB connection string parameters available to the container
+        A kubernetes load balancer is deployed in front of the cluster.
+            The ingress of the loadbalancer is the public IP of the service
 
-Rollout changes
-    
-Clean up
-    kubectl delete dbinstance -n villas-deploy villas-rds
-    kubectl delete pods --all -n villas-ack-system
-    kubectl delete deployment eks-villas-linux-deployment -n villas-deploy
-    eksctl delete cluster --region=us-east-2 --name=villas-cluster
-
-
-Code Pipeline
+AWS LoadBalancer Public URL
+    Can get the URL for the load balancer, the one to use when accessing the service, from this command:
+    (kubectl describe services -n villas-deploy villas-external-service) -match 'LoadBalancer Ingress'
 
 IAM
 
@@ -101,10 +54,6 @@ recreate them (it's stupid).
 
 The main issue is that in order for the build to run docker build it needs extra permissions. This extra permission has
 been put into the ECR_Docker_Build policy which has been added to the codebuild-Villas-backend-python-service-role.
-
-IAM Role For ACK-RDS-controller
-    Created a custom role: ack-rds-controller following the scripts in Step 2 of https://aws-controllers-k8s.github.io/community/docs/user-docs/irsa/
-    Did this manually with the account and oidc issuer hard coded. --> Not sure of the OIDC issuer is static between cluster tear-down and recreate
 
 Build Machine
 Need to use a linux AMD64 build machine. The aarch64 (arm64) machines don't seem to work well with the python image.
@@ -122,8 +71,24 @@ to the repo. Basic process is pull from DockerHub, retag and push to ECR.
 
 There is something called a pull through cache which may solve this issue.
 
-VPC (not sure if this is actually needed)
-Public/Private VPC  : vpc-050a36b81705340ad	
-SubnetsPrivate	subnet-048d6f1f98a990a92,subnet-0c8f12a7d65df0e5b	-	Villas-subnet-stack::SubnetsPrivate
-SubnetsPublic	subnet-07cb82d841d2aa162,subnet-030f7d3462ef62445	-	Villas-subnet-stack::SubnetsPublic
-    Have deleted the NAT Gateways on this VPC to reduce cost
+Build Spec
+    The file backend-buildspec.yml uses some environment variables that are defined in the settings for the Villas-backend-python build project. Click Edit > Environment to view.
+
+Image Versioning
+    The file named 'version' in the root of the project contains the current image version. The contents of that file are picked up by the backend-buildspec and used as the image tag
+    To rollout the latest version:
+
+    kubectl set image deployment/eks-villas-linux-deployment villas=899955329535.dkr.ecr.us-west-2.amazonaws.com/villas-ecr:<version> -n villas-deploy
+
+Troubleshooting
+    Pods
+        Can run a bash shell on a pod to troubleshoot the pod.
+            Get the pod name:
+                (kubectl get pods -n villas-deploy) | Select-Object -First 1 -Skip 1 | Select-String -Pattern '(?<name>\S*)'
+            Execute the bash shell:
+                kubectl exec -it -n villas-deploy {pod_name} -- /bin/bash
+
+            From there can run the Python interpreter
+        
+        Can get console logs from pod with:
+            kubectl logs -n villas-deploy --all-containers=true {pod_name}
