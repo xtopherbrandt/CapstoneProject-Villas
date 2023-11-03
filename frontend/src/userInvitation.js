@@ -5,6 +5,8 @@ import { TextField, Button, Snackbar, Container, Box, Grid, Avatar, Typography, 
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import MuiAlert from '@mui/material/Alert';
 
+const HOST = process.env.REACT_APP_SERVER_HOST;
+
 const Alert = React.forwardRef(function Alert(props, ref) {
   return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
 });
@@ -75,7 +77,7 @@ export const UserInvitationForm = ({setShowForm, setCompletionStatus, emailAddre
                 },
             });
 
-            const villaUserUrl = 'http://localhost:5000/user-invite';
+            const villaUserUrl = `${HOST}/user-invite`;
             const body = {
               "email_address": emailAddress,
               "user_role": userRole,
