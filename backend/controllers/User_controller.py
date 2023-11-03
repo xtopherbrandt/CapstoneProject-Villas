@@ -1,13 +1,16 @@
 from flask import Flask, request,jsonify, abort
 from models.user_model import User, UserSchema
-from models.user_contact_model import UserContact, UserContactSchema
+from models.user_model import UserContact, UserContactSchema
 from models.model_base import db
 import requests
 from marshmallow.exceptions import ValidationError
+from marshmallow import EXCLUDE
 from authlib.integrations.flask_oauth2 import ResourceProtector
 from validator import Auth0JWTBearerTokenValidator, domain, audience
 import json
 import random, string
+from sqlalchemy import select
+from sqlalchemy.orm import join
 
 app = Flask(__name__)
 
@@ -139,7 +142,7 @@ def define_routes(app):
         Create User Profile
         Body: Valid User object:
             {
-                "user_id" : string : required,
+                "auth0_user_id" : string : required,
                 "first_name" : string : required,
                 "last_name" : string : required,
                 "home_address_line_1" : string,
@@ -161,20 +164,29 @@ def define_routes(app):
         user_data = request.get_json()
         
         if user_data == {}:
+            print("User data was empty")
             abort(400, "User data was empty.")
         
         print(user_data)
-            
+
+        villa_user = User.query.filter_by(auth0_id = user_data['auth0_user_id']).one_or_none()
+
+        if villa_user is None:
+            message = f'No user found with auth0_user_id = {user_data["auth0_user_id"]}'
+            abort(404, message)        
+
         try:
-            user_schema = UserContactSchema()
-            user = user_schema.load(user_data)
+            user_schema = UserContactSchema(unknown=EXCLUDE)
+            posted_user_contact = user_schema.load(user_data)
+            posted_user_contact.set_user_id( villa_user.get_id() )
+            
         except ValidationError as e:
             print(e.messages)
             abort(400, e.messages)
                     
-        print(user)
+        print(posted_user_contact)
         try:
-            db.session.add(user)
+            db.session.add(posted_user_contact)
             db.session.commit()
         except Exception as e:
             if hasattr(e, 'message'):
@@ -185,19 +197,19 @@ def define_routes(app):
 
         success = True
 
-        print(user_schema.dump(user))
+        print(f'user: {user_schema.dump(posted_user_contact)}')
         return jsonify({
             'success': success,
-            'user': user_schema.dump(user)
+            'user': user_schema.dump(posted_user_contact)
         })
         
-    @app.route('/user/<int:user_id>', methods=['GET'])
+    @app.route('/user/<string:auth0_user_id>', methods=['GET'])
     @require_auth('read:user')
-    def get_user_contact(user_id):
+    def get_user_contact(auth0_user_id):
         '''
         Get User Contact
 
-        Route: /user/<id>
+        Route: /user/<auth0_user_id>
         Method: GET
         Response:
             {
@@ -207,28 +219,31 @@ def define_routes(app):
         '''
         
         success = False
-        print( f'Get user contact: {user_id}')
+        statement = select(User, UserContact).join(UserContact, isouter=True).where(User.auth0_id == auth0_user_id)
+        session = db.session
+        
+        print( f'Get user contact: {auth0_user_id}')
         try:
-            user = UserContact.query.filter(User.user_id == user_id).one_or_none()
+            results = session.execute(statement).fetchone()
         except Exception as e:
             if hasattr(e, 'message'):
                 print(e.message)
             else:
                 print(e)
             abort(500)
-        if user is None:
-            abort(404)            
-        user_contact_schema = UserContactSchema()
-        user_contact_deserialized = user_contact_schema.dump(user)
-        
-        print(user)
+        if results is None:
+            message =  f'A user with Auth0 user id:{auth0_user_id} was not found in the villas database'
+            abort(404, message)         
+         
+        # results is a complex type of Row[Tuple[User, UserContact]]
+        # need to get the User object out to load into the schema
+        user_schema = UserSchema().dumps(results[0])
  
         success = True
 
-        print(user_contact_schema.dump(user))
         return jsonify({
             'success': success,
-            'user': user_contact_deserialized
+            'user': user_schema
         })        
         
 def get_id_of_role(app, token, role_name) -> string:

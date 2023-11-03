@@ -8,12 +8,12 @@ import { Auth0Provider } from '@auth0/auth0-react';
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <Auth0Provider
-    domain = 'dev-boa4pqqkkm3qz05i.us.auth0.com'
-    clientId='dT8TdAVlj3jXfXvFuPU6kXGumiS6hAhL'
+    domain = {process.env.REACT_APP_AUTH0_DOMAIN}
+    clientId = {process.env.REACT_APP_AUTH0_CLIENT_ID}
     authorizationParams={{
       redirect_uri: window.location.origin,
       audience: "https://villa-systems.net", 
-      scope: "read:user create:user update:user delete:user"
+      scope: "read:user create:user update:user delete:user openid email profile"
     }}>
     <React.StrictMode>
       <App />

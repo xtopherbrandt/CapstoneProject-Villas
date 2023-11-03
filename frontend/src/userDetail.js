@@ -4,30 +4,10 @@ import jwt_decode from 'jwt-decode';
 import { TextField, Button, FormControlLabel, Container, Box, Grid, Avatar, Typography, Select, InputLabel, MenuItem, Link } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 
+const HOST = process.env.REACT_APP_SERVER_HOST;
 
-export const UserProfile = ({authenticatedUserScope}) => {
-    const { isAuthenticated } = useAuth0();
-    const [ showForm, setShowForm ] = useState( false )
-
-    let whatToShow=(<button onClick={() => setShowForm(true)}>User Profile</button>);
-
-    if (showForm){
-        whatToShow = (<UserProfileForm setShowForm={(x) => setShowForm(x)}/>);
-    }
-
-    return (
-        ( isAuthenticated && authenticatedUserScope.includes('create:user') && (
-            <div>
-                {whatToShow}
-            </div>
-            )
-        )
-        
-    );
-};
-
-export const AuthenticatedUser = ({setUserScope}) => {
-    const { isAuthenticated, getAccessTokenSilently } = useAuth0();
+export const AuthenticatedUser = ({authenticatedUserScope, setUserScope}) => {
+    const { isAuthenticated, getAccessTokenSilently, user } = useAuth0();
     const [ villaUser, setVillaUser] = useState(null);
     const [ isLoading, setIsLoading ] = useState(true);
 
@@ -43,19 +23,28 @@ export const AuthenticatedUser = ({setUserScope}) => {
                     },
                 });
  
-                setUserScope( jwt_decode(accessToken).scope )
+                let decodedToken = jwt_decode(accessToken)
+                setUserScope( decodedToken.scope )
+                let auth0UserId = decodedToken.sub
 
-                const villaUserUrl = 'http://localhost:5000/user/1';
+                if (auth0UserId == '' || auth0UserId == null){
+                  console.log('No Auth0 user id available')
+                }
+                else{
+                  const villaUserUrl = `${HOST}/user/${auth0UserId}`;
 
-                const villaUserResponse = await fetch(villaUserUrl, {
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`,
-                    },
-                });
+                  const villaUserResponse = await fetch(villaUserUrl, {
+                      headers: {
+                          Authorization: `Bearer ${accessToken}`,
+                      },
+                  });
+  
+                  const villaUser_responseJson = await villaUserResponse.json();
 
-                const villaUser_responseJson = await villaUserResponse.json();
-                
-                setVillaUser( villaUser_responseJson.user );
+                  let localVillaUser = JSON.parse( villaUser_responseJson.user );
+                  localVillaUser['email'] = user.email
+                  setVillaUser( localVillaUser );
+                }
 
                 setIsLoading(false);
                 
@@ -75,39 +64,57 @@ export const AuthenticatedUser = ({setUserScope}) => {
     return (
         isAuthenticated && (
             <div>
-                <h2>Villa User</h2>
-                <p>{villaUser.first_name} {villaUser.last_name}</p>
+              <UserProfile authenticatedUserScope={authenticatedUserScope} villaUser={villaUser}/>
             </div>
         )
     )
 }
 
-function Copyright(props) {
+export const UserProfile = ({authenticatedUserScope, villaUser}) => {
+  const { isAuthenticated } = useAuth0();
+  const [ showForm, setShowForm ] = useState( false )
+
+  let whatToShow=(<div><UserProfileShort villaUser={villaUser}/><button onClick={() => setShowForm(true)}>User Profile</button></div>);
+  
+  if ( ( villaUser != null && villaUser.user_contact == null ) && showForm == false ){
+    setShowForm(true)
+  }
+
+  if (showForm ){
+      whatToShow = (<UserProfileForm setShowForm={setShowForm} villaUser={villaUser}/>);
+  }
+
   return (
-    <Typography variant="body2" color="text.secondary" align="center" {...props}>
-      {'Copyright © '}
-      <Link color="inherit" href="https://villas-management.qqq/">
-        Villas Management
-      </Link>{' '}
-      {new Date().getFullYear()}
-      {'.'}
-    </Typography>
+      ( isAuthenticated && authenticatedUserScope.includes('update:user') && (
+          <div>
+              {whatToShow}
+          </div>
+          )
+      )
+      
   );
+};
+
+export const UserProfileShort = ({villaUser}) =>{
+  return(
+    <div>
+      <h2>{villaUser.user_contact.first_name} {villaUser.user_contact.last_name}</h2>
+    </div>
+  )
 }
 
-export const UserProfileForm = ({setShowForm}) => {
+export const UserProfileForm = ({setShowForm, villaUser}) => {
     const { isAuthenticated, getAccessTokenSilently } = useAuth0();
-    const [firstName, setFirstName] = useState('');
-    const [lastName, setLastName] = useState('');
-    const [streetAddressLine1, setStreetAddressLine1] = useState('');
-    const [streetAddressLine2, setStreetAddressLine2] = useState('');
-    const [city, setCity] = useState('');
-    const [province, setProvince] = useState('');
-    const [postalCode, setPostalCode] = useState('');
-    const [country, setCountry] = useState('');
-    const [phoneNumber, setPhoneNumber] = useState('');
-    const [email, setEmail] = useState('');
-    const [ isLoading, setIsLoading ] = useState(true);
+    const [firstName, setFirstName] = useState(villaUser.user_contact.first_name);
+    const [lastName, setLastName] = useState(villaUser.user_contact.last_name);
+    const [streetAddressLine1, setStreetAddressLine1] = useState(villaUser.user_contact.home_address_line_1);
+    const [streetAddressLine2, setStreetAddressLine2] = useState(villaUser.user_contact.home_address_line_2);
+    const [city, setCity] = useState(villaUser.user_contact.home_city);
+    const [province, setProvince] = useState(villaUser.user_contact.home_province);
+    const [postalCode, setPostalCode] = useState(villaUser.user_contact.home_postal_code);
+    const [country, setCountry] = useState(villaUser.user_contact.home_country);
+    const [phoneNumber, setPhoneNumber] = useState(villaUser.user_contact.phone_number);
+    const [email, setEmail] = useState(villaUser.email);
 
     const postVillaUser = async () => {
         const domain = 'dev-boa4pqqkkm3qz05i.us.auth0.com';
@@ -120,8 +127,9 @@ export const UserProfileForm = ({setShowForm}) => {
                 },
             });
 
-            const villaUserUrl = 'http://localhost:5000/user';
+            const villaUserUrl = `${HOST}/user`;
             const body = {
+              "auth0_user_id": jwt_decode(accessToken).sub,
               "first_name": firstName,
               "last_name": lastName,
               "home_address_line_1": streetAddressLine1,
@@ -147,7 +155,7 @@ export const UserProfileForm = ({setShowForm}) => {
             
             console.log( villaUser_responseJson.user );
 
-            setIsLoading(false);
+            setShowForm(false)
             
         } 
         catch (e) {
@@ -161,9 +169,12 @@ export const UserProfileForm = ({setShowForm}) => {
 
         postVillaUser();
 
-        console.log('Form submitted!');
     };
   
+    const handleClose = (e) => {
+        setShowForm(false)
+    };
+
     return (
       <Container component="main" maxWidth="xs">
 
@@ -179,7 +190,7 @@ export const UserProfileForm = ({setShowForm}) => {
             <LockOutlinedIcon />
           </Avatar>
           <Typography component="h1" variant="h5">
-            Create User
+            Edit Profile
           </Typography>
           <Box component="form" onSubmit={handleSubmit} sx={{ mt:3 }}>
             <Grid container spacing={2}>
@@ -303,14 +314,25 @@ export const UserProfileForm = ({setShowForm}) => {
                 />
 
               </Grid>
-              <Button 
-                fullWidth 
-                variant="contained" 
-                type="submit"
-                sx={{ mt: 3, mb:2 }}
-              >
-                Create User
-              </Button>
+              <Grid item xs={6}>
+                <Button 
+                  fullWidth 
+                  variant="contained" 
+                  type="submit"
+                  sx={{ mt: 3, mb:2 }}>
+                  Update
+                </Button>
+              </Grid>                
+              <Grid item xs={6}>
+                <Button 
+                  fullWidth 
+                  variant="outlined" 
+                  onClick={handleClose}
+                  sx={{ mt: 3, mb:2 }}>
+                  Close
+                </Button>
+              </Grid>
+
             </Grid>            
           </Box>
         </Box>
@@ -318,3 +340,16 @@ export const UserProfileForm = ({setShowForm}) => {
       </Container>      
     );
   };
+  
+function Copyright(props) {
+  return (
+    <Typography variant="body2" color="text.secondary" align="center" {...props}>
+      {'Copyright © '}
+      <Link color="inherit" href="https://villas-management.qqq/">
+        Villas Management
+      </Link>{' '}
+      {new Date().getFullYear()}
+      {'.'}
+    </Typography>
+  );
+}

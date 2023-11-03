@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import Box from '@mui/material/Box';
 import List from '@mui/material/List';
 import UnitDetail from './unitDetail';
-import {LoginButton, LogoutButton, Profile} from './auth0';
+import {Auth0Profile, LoginButton, LogoutButton, Profile} from './auth0';
 import {UserProfile, AuthenticatedUser} from './userDetail';
 import { UserInvitation } from './userInvitation';
 
@@ -19,7 +19,8 @@ function App() {
         </header>
         <LoginButton/>
         <LogoutButton/>
-        <AuthenticatedUser setUserScope={(scope) => setAuthenticatedUserScope(scope)}></AuthenticatedUser>
+        <Auth0Profile/>
+        <AuthenticatedUser authenticatedUserScope={authenticatedUserScope} setUserScope={(scope) => setAuthenticatedUserScope(scope)}></AuthenticatedUser>
         <UserInvitation authenticatedUserScope={authenticatedUserScope}></UserInvitation>
         <p>{authenticatedUserScope}</p>
       </div>

@@ -160,19 +160,20 @@ class Test_UserAPI(unittest.TestCase):
 
     def test_get_valid_user_returns_200(self):
         
-        userName='qae9rz92@duck.com'
+        userName='8bsumgd8@duck.com'
         token = self.get_user_auth_token(userName)
         headers = { 'authorization': f'Bearer {token}' }
         
-        get_response = self.client().get('/user/1', headers=headers)
+        get_response = self.client().get('/user/auth0|6543f5b1cba2fea2618e27c2', headers=headers)
        
         # Assert the response status code is NOT FOUND
         self.assertEqual(get_response.status_code, 200)    
         self.check_basic_response_format(get_response,['user'])
+        self.assertIn("user_contact", get_response.json['user'], "response should contain a user_contact element" )
         
     def test_get_user_with_bad_id_returns_404(self):
         
-        userName='qae9rz92@duck.com'
+        userName='8bsumgd8@duck.com'
         token = self.get_user_auth_token(userName)
         headers = { 'authorization': f'Bearer {token}' }
         
@@ -183,7 +184,7 @@ class Test_UserAPI(unittest.TestCase):
         
     def test_post_user_with_no_body_returns_415(self):
         
-        userName='qae9rz92@duck.com'
+        userName='8bsumgd8@duck.com'
         token = self.get_user_auth_token(userName)
         headers = { 'authorization': f'Bearer {token}' }
         
@@ -194,7 +195,7 @@ class Test_UserAPI(unittest.TestCase):
         
     def test_post_user_with_empty_body_returns_400(self):
                 
-        userName='qae9rz92@duck.com'
+        userName='8bsumgd8@duck.com'
         token = self.get_user_auth_token(userName)
         headers = { 'authorization': f'Bearer {token}' }
 
