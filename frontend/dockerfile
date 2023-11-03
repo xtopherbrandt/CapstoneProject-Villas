@@ -1,0 +1,24 @@
+FROM --platform=linux/amd64 899955329535.dkr.ecr.us-west-2.amazonaws.com/node:latest
+
+# Set the working directory
+WORKDIR /app
+
+# Copy package.json and package-lock.json
+COPY package*.json ./
+COPY .env.development ./
+
+# Install dependencies
+RUN npm install
+
+# Copy the app's source code
+COPY /src /app/src
+COPY /public /app/public
+
+# Build the app
+RUN npm run build
+
+# Expose the port on which the app will run
+EXPOSE 3000
+
+# Set the command to run the app
+CMD ["npm", "start"]
