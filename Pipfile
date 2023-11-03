@@ -18,6 +18,7 @@ babel = "*"
 flask-cors = "*"
 requests = "*"
 authlib = "*"
+pyopenssl = "*"
 
 [dev-packages]
 
