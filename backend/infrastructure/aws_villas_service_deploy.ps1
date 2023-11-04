@@ -35,7 +35,7 @@ Write-Output "Configure Villas service deployment"
     kubectl apply -f eks-villas-service.yaml
 
 Write-Output "Expose a load balancer in front of the cluster:"
-    kubectl expose deployment -n ${VILLAS_NAMESPACE} eks-villas-linux-deployment --type=LoadBalancer --name=villas-external-service
+    kubectl expose deployment -n ${VILLAS_NAMESPACE} eks-villas-linux-deployment --type=LoadBalancer --port=3000 --target-port=3000 --name=villas-external-service
 
     kubectl get deployments -n villas-deploy
     kubectl describe pods -n villas-deploy
